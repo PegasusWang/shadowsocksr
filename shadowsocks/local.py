@@ -31,7 +31,7 @@ if __name__ == '__main__':
 from shadowsocks import shell, daemon, eventloop, tcprelay, udprelay, asyncdns
 
 
-def main():
+def run(config, loop):
     shell.check_python()
 
     # fix py2exe
@@ -40,42 +40,79 @@ def main():
         p = os.path.dirname(os.path.abspath(sys.executable))
         os.chdir(p)
 
-    config = shell.get_config(True)
-
     if not config.get('dns_ipv6', False):
         asyncdns.IPV6_CONNECTION_SUPPORT = False
 
     daemon.daemon_exec(config)
-    logging.info("local start with protocol[%s] password [%s] method [%s] obfs [%s] obfs_param [%s]" %
-            (config['protocol'], config['password'], config['method'], config['obfs'], config['obfs_param']))
+    logging.info("local start with protocol[%s] password [%s] method [%s] obfs [%s] obfs_param [%s] server [%s]" % (
+        config['protocol'], '**', config['method'], config['obfs'], config.get('obfs_param'), config['server']))
 
-    try:
-        logging.info("starting local at %s:%d" %
-                     (config['local_address'], config['local_port']))
+    logging.info("starting local at %s:%d" %
+                 (config['local_address'], config['local_port']))
 
-        dns_resolver = asyncdns.DNSResolver()
-        tcp_server = tcprelay.TCPRelay(config, dns_resolver, True)
-        udp_server = udprelay.UDPRelay(config, dns_resolver, True)
-        loop = eventloop.EventLoop()
-        dns_resolver.add_to_loop(loop)
-        tcp_server.add_to_loop(loop)
-        udp_server.add_to_loop(loop)
+    dns_resolver = asyncdns.DNSResolver()
+    tcp_server = tcprelay.TCPRelay(config, dns_resolver, True)
+    udp_server = udprelay.UDPRelay(config, dns_resolver, True)
+    dns_resolver.add_to_loop(loop)
+    tcp_server.add_to_loop(loop)
+    udp_server.add_to_loop(loop)
 
-        def handler(signum, _):
-            logging.warn('received SIGQUIT, doing graceful shutting down..')
-            tcp_server.close(next_tick=True)
-            udp_server.close(next_tick=True)
-        signal.signal(getattr(signal, 'SIGQUIT', signal.SIGTERM), handler)
+    def handler(signum, _):
+        logging.warn('received SIGQUIT, doing graceful shutting down..')
+        tcp_server.close(next_tick=True)
+        udp_server.close(next_tick=True)
+    signal.signal(getattr(signal, 'SIGQUIT', signal.SIGTERM), handler)
 
-        def int_handler(signum, _):
-            sys.exit(1)
-        signal.signal(signal.SIGINT, int_handler)
-
-        daemon.set_user(config.get('user', None))
-        loop.run()
-    except Exception as e:
-        shell.print_exception(e)
+    def int_handler(signum, _):
         sys.exit(1)
+    signal.signal(signal.SIGINT, int_handler)
+
+    daemon.set_user(config.get('user', None))
+    loop.run()
+
+
+def load_gui_json_config(configfile_name='gui-config.json'):
+    """解析直接从 rixcloud 下载的配置文件"""
+    import json
+    import random
+    config_path = shell.find_config(configfile_name)
+    with open(config_path) as f:
+        gui_config = json.load(f)
+        configs = gui_config['configs']
+        configs = [c for c in configs if u'日本' in c['remarks']]
+        # configs = [c for c in configs if u'香港' in c['remarks']]
+        random_config = random.choice(configs)
+        del random_config['remarks']    # 删除中文的字段
+        random_config['local_address'] = '127.0.0.1'
+        random_config['local_port'] = 1080
+        # random_config['obfs_param'] = ''
+        return random_config
+
+
+def main(use_rix_config=1):
+    import time
+    while True:
+        try:
+            loop = eventloop.EventLoop()
+            config = shell.get_config(True)
+            if use_rix_config:
+                rix_config = load_gui_json_config()
+                config['server'] = str(rix_config['server'])
+                config['verbose'] = 0
+                config['timeout'] = 120
+                config['connect_verbose_info'] = 1
+            run(config, loop)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            loop.stop()
+            time.sleep(1)
+            print('restart.................')
+        except KeyboardInterrupt as e:
+            shell.print_exception(e)
+            sys.exit(1)
+            print('exit....................')
+
 
 if __name__ == '__main__':
     main()
