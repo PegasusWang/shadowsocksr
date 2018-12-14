@@ -71,7 +71,7 @@ def run(config, loop):
     loop.run()
 
 
-def load_gui_json_config(configfile_name='gui-config.json'):
+def load_gui_json_config(region, configfile_name='gui-config.json'):
     """解析直接从 rixcloud 下载的配置文件"""
     import json
     import random
@@ -79,7 +79,7 @@ def load_gui_json_config(configfile_name='gui-config.json'):
     with open(config_path) as f:
         gui_config = json.load(f)
         configs = gui_config['configs']
-        configs = [c for c in configs if u'日本' in c['remarks']]
+        configs = [c for c in configs if region in c['remarks']]
         # configs = [c for c in configs if u'香港' in c['remarks']]
         random_config = random.choice(configs)
         del random_config['remarks']    # 删除中文的字段
@@ -91,12 +91,16 @@ def load_gui_json_config(configfile_name='gui-config.json'):
 
 def main(use_rix_config=1):
     import time
+    try:
+        region = sys.argv[1]
+    except IndexError:
+        region = u'日本'
     while True:
         try:
             loop = eventloop.EventLoop()
             config = shell.get_config(True)
             if use_rix_config:
-                rix_config = load_gui_json_config()
+                rix_config = load_gui_json_config(region.decode('utf8'))
                 config['server'] = str(rix_config['server'])
                 config['verbose'] = 0
                 config['timeout'] = 120
