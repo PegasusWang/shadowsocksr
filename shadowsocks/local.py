@@ -28,7 +28,7 @@ if __name__ == '__main__':
     file_path = os.path.dirname(os.path.realpath(inspect.getfile(inspect.currentframe())))
     sys.path.insert(0, os.path.join(file_path, '../'))
 
-from shadowsocks import shell, daemon, eventloop, tcprelay, udprelay, asyncdns
+from shadowsocks import shell, daemon, eventloop, tcprelay, udprelay, asyncdns, common
 
 
 def run(config, loop):
@@ -100,7 +100,7 @@ def main(use_rix_config=1):
             loop = eventloop.EventLoop()
             config = shell.get_config(True)
             if use_rix_config:
-                rix_config = load_gui_json_config(region.decode('utf8'))
+                rix_config = load_gui_json_config(common.to_unicode(region))
                 config['server'] = str(rix_config['server'])
                 config['verbose'] = 0
                 config['timeout'] = 120

@@ -23,11 +23,34 @@ import struct
 import logging
 import binascii
 import re
+import sys
 
 from shadowsocks import lru_cache
 
+PY3 = sys.version_info >= (3,)
+
+
+def to_unicode(value):
+    """Converts a string argument to a unicode string.
+
+    If the argument is already a unicode string or None, it is returned
+    unchanged.  Otherwise it must be a byte string and is decoded as utf8.
+    """
+    if PY3:
+        _unicode_type = str
+    else:
+        _unicode_type = unicode  # noqa
+    if isinstance(value, _unicode_type):
+        return value
+    if not isinstance(value, bytes):
+        raise TypeError(
+            "Expected bytes, unicode, or None; got %r" % type(value)
+        )
+    return value.decode("utf-8")
+
+
 def compat_ord(s):
-    if type(s) == int:
+    if isinstance(s, int):
         return s
     return _ord(s)
 
@@ -45,18 +68,20 @@ chr = compat_chr
 
 connect_log = logging.debug
 
+
 def to_bytes(s):
     if bytes != str:
-        if type(s) == str:
+        if isinstance(s, str):
             return s.encode('utf-8')
     return s
 
 
 def to_str(s):
     if bytes != str:
-        if type(s) == bytes:
+        if isinstance(s, bytes):
             return s.decode('utf-8')
     return s
+
 
 def int32(x):
     if x > 0xFFFFFFFF or x < 0:
@@ -68,6 +93,7 @@ def int32(x):
         else:
             return -2147483648
     return x
+
 
 def inet_ntop(family, ipstr):
     if family == socket.AF_INET:
@@ -112,7 +138,7 @@ def inet_pton(family, addr):
 def is_ip(address):
     for family in (socket.AF_INET, socket.AF_INET6):
         try:
-            if type(address) != str:
+            if not isinstance(address, str):
                 address = address.decode('utf8')
             inet_pton(family, address)
             return family
@@ -159,6 +185,7 @@ def pack_addr(address):
         address = address[:255]  # TODO
     return b'\x03' + chr(len(address)) + address
 
+
 def pre_parse_header(data):
     if not data:
         return None
@@ -199,6 +226,7 @@ def pre_parse_header(data):
         if data_size < len(ogn_data):
             data += ogn_data[data_size:]
     return data
+
 
 def parse_header(data):
     addrtype = ord(data[0])
@@ -248,7 +276,7 @@ class IPNetwork(object):
         self.addrs_str = addrs
         self._network_list_v4 = []
         self._network_list_v6 = []
-        if type(addrs) == str:
+        if isinstance(addrs, str):
             addrs = addrs.split(',')
         list(map(self.add_network, addrs))
 
@@ -305,6 +333,7 @@ class IPNetwork(object):
     def __ne__(self, other):
         return self.addrs_str != other.addrs_str
 
+
 class PortRange(object):
     def __init__(self, range_str):
         self.range_str = to_str(range_str)
@@ -342,8 +371,10 @@ class PortRange(object):
     def __ne__(self, other):
         return self.range_str != other.range_str
 
+
 class UDPAsyncDNSHandler(object):
     dns_cache = lru_cache.LRUCache(timeout=1800)
+
     def __init__(self, params):
         self.params = params
         self.remote_addr = None
@@ -361,7 +392,7 @@ class UDPAsyncDNSHandler(object):
 
     def _handle_dns_resolved(self, result, error):
         if error:
-            logging.error("%s when resolve DNS" % (error,)) #drop
+            logging.error("%s when resolve DNS" % (error,))  # drop
             return self.call_back(error, self.remote_addr, None, self.params)
         if result:
             ip = result[1]
@@ -369,6 +400,7 @@ class UDPAsyncDNSHandler(object):
                 return self.call_back("", self.remote_addr, ip, self.params)
         logging.warning("can't resolve %s" % (self.remote_addr,))
         return self.call_back("fail to resolve", self.remote_addr, None, self.params)
+
 
 def test_inet_conv():
     ipv4 = b'8.8.4.4'
