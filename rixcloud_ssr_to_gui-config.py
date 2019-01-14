@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -9,6 +10,9 @@ import json
 import os
 
 import requests
+
+
+ENV_KEY = 'RIXCLOUD_SSR_API_URL'
 
 
 def _fill_missing(string):
@@ -25,8 +29,8 @@ def _b64_url_decode(b64_str):
 
 
 def parse():
-    url = os.getenv('RIXCLOUD_SSR_API_URL')
-    assert url, 'you must set rix cloud ssr url in env'
+    url = os.getenv(ENV_KEY)
+    assert url, 'must set rixcloud ssr url in env, export {}=""'.format(ENV_KEY)
     resp = requests.get(url)
     text = resp.text
     urls = base64.b64decode(text).decode().split('\n')

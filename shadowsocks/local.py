@@ -101,7 +101,7 @@ def main(use_rix_config=1):
     try:
         region = sys.argv[1]
     except IndexError:
-        region = 'jp'
+        region = 'us'
     while True:
         try:
             loop = eventloop.EventLoop()
