@@ -92,7 +92,8 @@ def load_gui_json_config(region, configfile_name='gui-config.json'):
         del random_config['remarks']    # 删除中文的字段
         random_config['local_address'] = '127.0.0.1'
         random_config['local_port'] = 1080
-        # random_config['obfs_param'] = ''
+        random_config['obfsparam'] = common.to_bytes(random_config.pop('obfsparam'))
+        random_config['server_port'] = int(random_config.pop('serve_port'))
         return random_config
 
 
@@ -105,13 +106,18 @@ def main(use_rix_config=1):
     while True:
         try:
             loop = eventloop.EventLoop()
-            config = shell.get_config(True)
             if use_rix_config:
                 rix_config = load_gui_json_config(common.to_unicode(region))
+                config = shell.get_config(True)
+                config.update(rix_config)
+                config['password'] = common.to_bytes(rix_config['password'])
                 config['server'] = str(rix_config['server'])
                 config['verbose'] = 1
                 config['timeout'] = 120
                 config['connect_verbose_info'] = 1
+            else:
+                config = shell.get_config(True)
+            import pprint; pprint.pprint(config)
             run(config, loop)
         except Exception as e:
             import traceback
