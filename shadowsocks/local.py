@@ -82,14 +82,18 @@ def load_gui_json_config(region, configfile_name='gui-config.json'):
     """解析直接从 rixcloud 下载的配置文件"""
     import json
     import random
-    config_path = shell.find_config(configfile_name)
+    config_path = shell.find_config('config.json')
+    gui_config_path = shell.find_config(configfile_name)
     region_cn = REGION_MAP[region]
-    with open(config_path) as f:
+    with open(gui_config_path) as f:
         gui_config = json.load(f)
         configs = gui_config['configs']
         configs = [c for c in configs if region_cn in c['remarks']]
         random_config = random.choice(configs)
         del random_config['remarks']    # 删除中文的字段
+        # overwrite origin config.json
+        with open(config_path, 'w') as _f:
+            json.dump(random_config, _f ,indent=4)
         random_config['local_address'] = '127.0.0.1'
         random_config['local_port'] = 1080
         random_config['obfsparam'] = common.to_bytes(random_config.pop('obfsparam'))
