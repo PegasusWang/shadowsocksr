@@ -27,6 +27,7 @@ def _fill_missing(string):
 def _b64_url_decode(b64_str):
     return base64.urlsafe_b64decode(_fill_missing(b64_str)).decode()
 
+
 def parsed_ssr_url(url):
     """
     url: "ssr://"
@@ -64,9 +65,13 @@ def parse_text_ssr(text):
 
 
 def parse():
-    url = os.getenv(ENV_KEY)
+    # url = os.getenv(ENV_KEY)
+    # import ipdb;ipdb.set_trace()
+    # if url is None:
+    rixcloud_path = os.path.expanduser("~/.rixcloud")
+    url = open(rixcloud_path).read()
     assert url, 'must set rixcloud ssr url in env, export {}=""'.format(ENV_KEY)
-    resp = requests.get(url)
+    resp = requests.get(url.strip())
     text = resp.text
     urls = base64.b64decode(text).decode().split('\n')
     urls = [_ for _ in urls if _]
@@ -84,6 +89,7 @@ def write_gui_config():
     with open('gui-config.json', 'w') as f:
         json.dump(res, f, indent=4, ensure_ascii=False)
 
+
 def write_gui_config_ssr_common():
     """端口复用配置写入"""
     with open('_ssr.txt') as f:
@@ -93,6 +99,7 @@ def write_gui_config_ssr_common():
     res['configs'] = configs
     with open('gui-config.json', 'w') as f:
         json.dump(res, f, indent=4, ensure_ascii=False)
+
 
 if __name__ == '__main__':
     # write_gui_config_ssr_common()
