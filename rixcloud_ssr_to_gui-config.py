@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-解析从 rixcloud 获取的 ssr api，并导出成 gui-config.json
+NOTE: 注意脚本只支持 python3
+解析从 rixcloud 获取的 ssr api，并导出成 gui-config.json。
 """
 
 import base64
@@ -65,9 +66,6 @@ def parse_text_ssr(text):
 
 
 def parse():
-    # url = os.getenv(ENV_KEY)
-    # import ipdb;ipdb.set_trace()
-    # if url is None:
     rixcloud_path = os.path.expanduser("~/.rixcloud")
     url = open(rixcloud_path).read()
     assert url, 'must set rixcloud ssr url in env, export {}=""'.format(ENV_KEY)
